@@ -1,5 +1,17 @@
 /*
- * L.Draggable allows you to add dragging capabilities to any element. Supports mobile devices too.
+ * @class Draggable
+ * @aka L.Draggable
+ * @inherits Evented
+ *
+ * A class for making DOM elements draggable (including touch support).
+ * Used internally for map and marker dragging. Only works for elements
+ * that were positioned with [`L.DomUtil.setPosition`](#domutil-setposition).
+ *
+ * @example
+ * ```js
+ * var draggable = new L.Draggable(elementToDrag);
+ * draggable.enable();
+ * ```
  */
 
 L.Draggable = L.Evented.extend({
@@ -20,12 +32,16 @@ L.Draggable = L.Evented.extend({
 		}
 	},
 
+	// @constructor L.Draggable(el: HTMLElement, dragHandle?: HTMLElement, preventOutline: Boolean)
+	// Creates a `Draggable` object for moving `el` when you start dragging the `dragHandle` element (equals `el` itself by default).
 	initialize: function (element, dragStartTarget, preventOutline) {
 		this._element = element;
 		this._dragStartTarget = dragStartTarget || element;
 		this._preventOutline = preventOutline;
 	},
 
+	// @method enable()
+	// Enables the dragging ability
 	enable: function () {
 		if (this._enabled) { return; }
 
@@ -34,6 +50,8 @@ L.Draggable = L.Evented.extend({
 		this._enabled = true;
 	},
 
+	// @method disable()
+	// Disables the dragging ability
 	disable: function () {
 		if (!this._enabled) { return; }
 
@@ -46,21 +64,22 @@ L.Draggable = L.Evented.extend({
 	_onDown: function (e) {
 		this._moved = false;
 
-		if (e.shiftKey || ((e.which !== 1) && (e.button !== 1) && !e.touches)) { return; }
+		if (L.DomUtil.hasClass(this._element, 'leaflet-zoom-anim')) { return; }
 
-		L.DomEvent.stopPropagation(e);
+		if (L.Draggable._dragging || e.shiftKey || ((e.which !== 1) && (e.button !== 1) && !e.touches) || !this._enabled) { return; }
+		L.Draggable._dragging = true;  // Prevent dragging multiple objects at once.
 
 		if (this._preventOutline) {
 			L.DomUtil.preventOutline(this._element);
 		}
-
-		if (L.DomUtil.hasClass(this._element, 'leaflet-zoom-anim')) { return; }
 
 		L.DomUtil.disableImageDrag();
 		L.DomUtil.disableTextSelection();
 
 		if (this._moving) { return; }
 
+		// @event down: Event
+		// Fired when a drag is about to start.
 		this.fire('down');
 
 		var first = e.touches ? e.touches[0] : e;
@@ -89,6 +108,8 @@ L.Draggable = L.Evented.extend({
 		L.DomEvent.preventDefault(e);
 
 		if (!this._moved) {
+			// @event dragstart: Event
+			// Fired when a drag starts
 			this.fire('dragstart');
 
 			this._moved = true;
@@ -97,6 +118,11 @@ L.Draggable = L.Evented.extend({
 			L.DomUtil.addClass(document.body, 'leaflet-dragging');
 
 			this._lastTarget = e.target || e.srcElement;
+			// IE and Edge do not give the <use> element, so fetch it
+			// if necessary
+			if ((window.SVGElementInstance) && (this._lastTarget instanceof SVGElementInstance)) {
+				this._lastTarget = this._lastTarget.correspondingUseElement;
+			}
 			L.DomUtil.addClass(this._lastTarget, 'leaflet-drag-target');
 		}
 
@@ -105,13 +131,20 @@ L.Draggable = L.Evented.extend({
 
 		L.Util.cancelAnimFrame(this._animRequest);
 		this._lastEvent = e;
-		this._animRequest = L.Util.requestAnimFrame(this._updatePosition, this, true, this._dragStartTarget);
+		this._animRequest = L.Util.requestAnimFrame(this._updatePosition, this, true);
 	},
 
 	_updatePosition: function () {
 		var e = {originalEvent: this._lastEvent};
+
+		// @event predrag: Event
+		// Fired continuously during dragging *before* each corresponding
+		// update of the element's position.
 		this.fire('predrag', e);
 		L.DomUtil.setPosition(this._element, this._newPos);
+
+		// @event predrag: Event
+		// Fired continuously during dragging.
 		this.fire('drag', e);
 	},
 
@@ -136,11 +169,14 @@ L.Draggable = L.Evented.extend({
 			// ensure drag is not fired after dragend
 			L.Util.cancelAnimFrame(this._animRequest);
 
+			// @event dragend: Event
+			// Fired when the drag ends.
 			this.fire('dragend', {
 				distance: this._newPos.distanceTo(this._startPos)
 			});
 		}
 
 		this._moving = false;
+		L.Draggable._dragging = false;
 	}
 });

@@ -37,11 +37,8 @@ describe('Polygon', function () {
 
 		it("can be initialized with holes", function () {
 			var originalLatLngs = [
-				[ //external ring
-					[0, 10], [10, 10], [10, 0]
-				], [ //hole
-					[2, 3], [2, 4], [3, 4]
-				]
+				[[0, 10], [10, 10], [10, 0]], // external ring
+				[[2, 3], [2, 4], [3, 4]] // hole
 			];
 
 			var polygon = new L.Polygon(originalLatLngs);
@@ -67,6 +64,36 @@ describe('Polygon', function () {
 			]);
 			expect(polygon.getLatLngs()).to.eql(polygon._latlngs);
 		});
+
+		it("can be added to the map when empty", function () {
+			var polygon = new L.Polygon([]).addTo(map);
+			expect(map.hasLayer(polygon)).to.be(true);
+		});
+
+	});
+
+	describe("#isEmpty", function () {
+
+		it('should return true for a polygon with no latlngs', function () {
+			var layer = new L.Polygon([]);
+			expect(layer.isEmpty()).to.be(true);
+		});
+
+		it('should return false for simple polygon', function () {
+			var latLngs = [[1, 2], [3, 4], [5, 6]];
+			var layer = new L.Polygon(latLngs);
+			expect(layer.isEmpty()).to.be(false);
+		});
+
+		it('should return false for a multi-polygon', function () {
+			var latLngs = [
+				[[[10, 20], [30, 40], [50, 60]]],
+				[[[0, 10], [10, 10], [10, 0]], [[2, 3], [2, 4], [3, 4]]]
+			];
+			var layer = new L.Polygon(latLngs);
+			expect(layer.isEmpty()).to.be(false);
+		});
+
 	});
 
 	describe("#setLatLngs", function () {
@@ -86,11 +113,8 @@ describe('Polygon', function () {
 
 		it("can be set external ring and holes", function () {
 			var latLngs = [
-				[ //external ring
-					[0, 10], [10, 10], [10, 0]
-				], [ //hole
-					[2, 3], [2, 4], [3, 4]
-				]
+				[[0, 10], [10, 10], [10, 0]], // external ring
+				[[2, 3], [2, 4], [3, 4]] // hole
 			];
 
 			var polygon = new L.Polygon([]);
@@ -177,10 +201,8 @@ describe('Polygon', function () {
 
 		it("should return first latlngs on a multipolygon with hole", function () {
 			var latlngs = [
-				[
-					[L.latLng([0, 10]), L.latLng([10, 10]), L.latLng([10, 0])],
-					[L.latLng([2, 3]), L.latLng([2, 4]), L.latLng([3, 4])]
-				],
+				[[L.latLng([0, 10]), L.latLng([10, 10]), L.latLng([10, 0])],
+				 [L.latLng([2, 3]), L.latLng([2, 4]), L.latLng([3, 4])]],
 				[[L.latLng([10, 20]), L.latLng([30, 40]), L.latLng([50, 60])]]
 			];
 
