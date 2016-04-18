@@ -19,6 +19,10 @@
  */
 
 L.Point = function (x, y, round) {
+	// @property x: Number
+	// The `x` coordinate of the point.
+	// @property y: Number
+	// The `y` coordinate of the point.
 	this.x = (round ? Math.round(x) : x);
 	this.y = (round ? Math.round(y) : y);
 };
